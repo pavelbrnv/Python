@@ -30,29 +30,22 @@ loan1 = annuity.Loan(
     term_in_months=223,
     loan_date=date(2022, 3, 19)
 )
-loan2 = annuity.Loan(
-    amount=6122721,
-    percent_per_year=6.1,
-    term_in_months=223,
-    loan_date=date(2022, 3, 19)
-)
 
 deposit = deposit.Deposit(
-    amount=300000,
-    percent_per_year=20,
+    amount=2000000,
+    percent_per_year=12,
     deposit_date=date(2022, 3, 19)
 )
 
+period = 36
+
 loan1_pays = loan1.get_annuity_fees()
-loan2_pays = loan2.get_annuity_fees()
-deposit_fees = deposit.get_pays(4)
+loan2_pays = loan1.get_annuity_daily_fees()
 
-dd = loan1_pays[3].get_debt_total_remainder() - loan2_pays[3].get_debt_total_remainder()
+# for pay in loan1_pays:
+#     print_fee(pay)
 
-print_fee(loan1_pays[3])
-print_fee(loan2_pays[3])
-print(dd)
-print_pay(deposit_fees[3])
+print()
 
-
-
+for pay in loan2_pays:
+    print_fee(pay)

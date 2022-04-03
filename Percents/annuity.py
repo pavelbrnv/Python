@@ -1,5 +1,6 @@
 from dateutil.relativedelta import relativedelta
 import calendar
+from datetime import date
 
 
 def round_finance(value):
@@ -77,5 +78,45 @@ class Loan:
             debt_amount = round_finance(month_fee - percent_amount)
             debt_remainder = round_finance(debt_remainder - debt_amount)
             fee = FeeInfo(month_index + 1, fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
+            fees.append(fee)
+        return fees
+
+    def get_annuity_daily_fees(self):
+        month_fee = self.get_month_fee()
+        debt_remainder = self.__amount
+        previous_fee_date = self.__loan_date
+
+        fees = []
+        for month_index in range(1, self.__term_in_months + 1):
+            if debt_remainder <= 0:
+                break
+
+            fee_date = previous_fee_date + relativedelta(months=1)
+            fee_delta = fee_date - previous_fee_date
+
+            percent_ratio = 0
+            for day_index in range(1, fee_delta.days + 1):
+                current_day = previous_fee_date + relativedelta(days=day_index)
+                percent_ratio += self.__percent_per_year * 1 / get_year_days_number(current_day.year)
+
+                # if current_day == date(2024, 3, 5):
+                #     pay = 1000000
+                #     percents = round_finance(percent_ratio * debt_remainder)
+                #     pay -= percents
+                #     debt_remainder -= pay
+                #     percent_ratio = 0
+
+            previous_fee_date = fee_date
+
+            percent_amount = round_finance(percent_ratio * debt_remainder)
+            debt_amount = round_finance(month_fee - percent_amount)
+            debt_remainder = round_finance(debt_remainder - debt_amount)
+
+            if debt_remainder <= 0 or month_index == self.__term_in_months:
+                month_fee += debt_remainder
+                debt_amount += debt_remainder
+                debt_remainder = 0
+
+            fee = FeeInfo(month_index, fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
             fees.append(fee)
         return fees

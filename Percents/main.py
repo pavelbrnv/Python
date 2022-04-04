@@ -30,6 +30,16 @@ loan1 = annuity.Loan(
     term_in_months=223,
     loan_date=date(2022, 3, 19)
 )
+early_fee1 = annuity.EarlyFee(
+    fee_date=date(2024, 3, 5),
+    fee_amount=1000000
+)
+early_fee2 = annuity.EarlyFee(
+    fee_date=date(2026, 5, 18),
+    fee_amount=500000
+)
+loan1.add_early_fee(early_fee1)
+loan1.add_early_fee(early_fee2)
 
 deposit = deposit.Deposit(
     amount=2000000,

@@ -14,6 +14,18 @@ def get_year_days_number(year):
         return 365
 
 
+class EarlyFee:
+    def __init__(self, fee_date, fee_amount):
+        self.__fee_date = fee_date
+        self.__fee_amount = fee_amount
+
+    def get_fee_date(self):
+        return self.__fee_date
+
+    def get_fee_amount(self):
+        return self.__fee_amount
+
+
 class FeeInfo:
     def __init__(self, index, fee_date, fee_amount, debt_part, percent_part, debt_total_remainder):
         self.__index = index
@@ -48,6 +60,7 @@ class Loan:
         self.__percent_per_year = percent_per_year / 100
         self.__term_in_months = term_in_months
         self.__loan_date = loan_date
+        self.__early_fees = []
 
     def get_month_fee(self):
         percent_per_month = self.__percent_per_year / 12
@@ -81,10 +94,16 @@ class Loan:
             fees.append(fee)
         return fees
 
+    def add_early_fee(self, early_fee):
+        self.__early_fees.append(early_fee)
+
     def get_annuity_daily_fees(self):
         month_fee = self.get_month_fee()
         debt_remainder = self.__amount
         previous_fee_date = self.__loan_date
+
+        early_fees = sorted(self.__early_fees, key=lambda x: x.get_fee_date())
+        early_fee_index = 0
 
         fees = []
         for month_index in range(1, self.__term_in_months + 1):
@@ -99,12 +118,18 @@ class Loan:
                 current_day = previous_fee_date + relativedelta(days=day_index)
                 percent_ratio += self.__percent_per_year * 1 / get_year_days_number(current_day.year)
 
-                # if current_day == date(2024, 3, 5):
-                #     pay = 1000000
-                #     percents = round_finance(percent_ratio * debt_remainder)
-                #     pay -= percents
-                #     debt_remainder -= pay
-                #     percent_ratio = 0
+                while early_fee_index < len(early_fees) and early_fees[early_fee_index].get_fee_date() <= current_day:
+                    early_fee = early_fees[early_fee_index]
+                    if early_fee.get_fee_date() == current_day:
+                        fee_amount = early_fee.get_fee_amount()
+                        percent_amount = round_finance(percent_ratio * debt_remainder)
+                        if fee_amount >= percent_amount:
+                            debt_amount = round_finance(fee_amount - percent_amount)
+                            debt_remainder = round_finance(debt_remainder - debt_amount)
+                            fee = FeeInfo(month_index, current_day, fee_amount, debt_amount, percent_amount, debt_remainder)
+                            fees.append(fee)
+                            percent_ratio = 0
+                    early_fee_index += 1
 
             previous_fee_date = fee_date
 

@@ -15,7 +15,7 @@ def get_year_days_number(year):
 
 
 class EarlyFee:
-    def __init__(self, fee_date, fee_amount):
+    def __init__(self, fee_date: date, fee_amount):
         self.__fee_date = fee_date
         self.__fee_amount = fee_amount
 
@@ -27,16 +27,12 @@ class EarlyFee:
 
 
 class FeeInfo:
-    def __init__(self, index, fee_date, fee_amount, debt_part, percent_part, debt_total_remainder):
-        self.__index = index
+    def __init__(self, fee_date, fee_amount, debt_part, percent_part, debt_total_remainder):
         self.__fee_date = fee_date
         self.__fee_amount = fee_amount
         self.__debt_part = debt_part
         self.__percent_part = percent_part
         self.__debt_total_remainder = debt_total_remainder
-
-    def get_index(self):
-        return self.__index
 
     def get_fee_date(self):
         return self.__fee_date
@@ -90,12 +86,19 @@ class Loan:
             percent_amount = round_finance(percent_ratio * debt_remainder)
             debt_amount = round_finance(month_fee - percent_amount)
             debt_remainder = round_finance(debt_remainder - debt_amount)
-            fee = FeeInfo(month_index + 1, fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
+            fee = FeeInfo(fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
             fees.append(fee)
         return fees
 
-    def add_early_fee(self, early_fee):
+    def add_early_fee(self, fee_date: date, fee_amount):
+        early_fee = EarlyFee(fee_date, fee_amount)
         self.__early_fees.append(early_fee)
+
+    def add_periodical_early_fees(self, first_fee_date: date, fee_amount, periods_delta: relativedelta, periods_number):
+        fee_date = first_fee_date
+        for i in range(periods_number):
+            self.add_early_fee(fee_date, fee_amount)
+            fee_date += periods_delta
 
     def get_annuity_daily_fees(self):
         month_fee = self.get_month_fee()
@@ -126,22 +129,32 @@ class Loan:
                         if fee_amount >= percent_amount:
                             debt_amount = round_finance(fee_amount - percent_amount)
                             debt_remainder = round_finance(debt_remainder - debt_amount)
-                            fee = FeeInfo(month_index, current_day, fee_amount, debt_amount, percent_amount, debt_remainder)
+
+                            if debt_remainder <= 0:
+                                fee_amount = round_finance(fee_amount + debt_remainder)
+                                debt_amount = round_finance(debt_amount + debt_remainder)
+                                debt_remainder = 0
+
+                            fee = FeeInfo(current_day, fee_amount, debt_amount, percent_amount, debt_remainder)
                             fees.append(fee)
+
                             percent_ratio = 0
                     early_fee_index += 1
 
             previous_fee_date = fee_date
+
+            if debt_remainder <= 0:
+                break
 
             percent_amount = round_finance(percent_ratio * debt_remainder)
             debt_amount = round_finance(month_fee - percent_amount)
             debt_remainder = round_finance(debt_remainder - debt_amount)
 
             if debt_remainder <= 0 or month_index == self.__term_in_months:
-                month_fee += debt_remainder
-                debt_amount += debt_remainder
+                month_fee = round_finance(month_fee + debt_remainder)
+                debt_amount = round_finance(debt_amount + debt_remainder)
                 debt_remainder = 0
 
-            fee = FeeInfo(month_index, fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
+            fee = FeeInfo(fee_date, month_fee, debt_amount, percent_amount, debt_remainder)
             fees.append(fee)
         return fees
